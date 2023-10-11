@@ -1,6 +1,12 @@
 import socket
 import sys
 import select
+import threading
+
+# A global dictionary to hold active connections. The keys are connection IDs (integers),
+# and the values are dictionaries containing the 'socket' object and 'address' tuple.
+connections = {}
+next_connection_id = 1  # The ID to be assigned to the next new connection
 
 # Function to display the user interface and handle user commands
 def user_interface():
@@ -33,9 +39,8 @@ def user_interface():
             if len(parts) != 3:
                 print("Invalid command. Usage: connect <destination> <port>")
             else:
-                destination = parts[1]
-                port = int(parts[2])
-                connect_to_peer(destination, port)
+                _, destination, port = command.split()
+                connect_to_peer(destination, int(port))
         elif command == 'list':
             # List all active connections
             list_connections()
@@ -85,14 +90,40 @@ def create_listener(port):
     listener.listen(5)
     return listener
 
+# Function to handle incoming connections
+def handle_incoming_connections(server_socket):
+    global connections, next_connection_id
+    
+    while True:
+        client_socket, client_address = server_socket.accept()
+        connections[next_connection_id] = {'socket': client_socket, 'address': client_address}
+        print(f"New connection from {client_address} with ID {next_connection_id}")
+        next_connection_id += 1
+
 # Function to establish a connection to another peer
 def connect_to_peer(destination, port):
     # Implement this function to create a socket and connect to the specified destination
+    global connections, next_connection_id  # Declare as global so we can modify them
+    try:
+        peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        peer_socket.connect((destination, port))
+        connections[next_connection_id] = {'socket': peer_socket, 'address': (destination, port)}
+        print(f"Connected to {destination} on port {port} with connection ID {next_connection_id}.")
+        next_connection_id += 1  # Increment the connection ID for the next connection
+    except Exception as e:
+        print(f"Failed to connect to {destination}:{port} - {str(e)}")
     pass
 
 # Function to list all active connections
 def list_connections():
     # Implement this function to display a numbered list of active connections
+    global connections  # Declare 'connections' as global so we can modify it
+    if not connections:
+        print("No active connections.")
+    else:
+        print("Active connections:")
+        for connection_id, info in connections.items():
+            print(f"{connection_id}: {info['address'][0]} {info['address'][1]}")
     pass
 
 # Function to terminate a connection
@@ -113,10 +144,18 @@ def close_all_connections():
 # Entry point of the program
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("Usage: ./chat <port>")
+        print("Usage: python app.py <port>")
         sys.exit(1)
 
     listening_port = int(sys.argv[1])
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.bind(('0.0.0.0', listening_port))
+    server_socket.listen(5)
 
-    # Start the user interface and handle user commands
+    # Create a new thread to handle incoming connections
+    threading.Thread(target=handle_incoming_connections, args=(server_socket,)).start()
+
+    print(f"Listening for incoming connections on port {listening_port}")
+
+    # Here is where the user interface function is called to handle user inputs and commands
     user_interface()
