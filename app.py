@@ -119,7 +119,7 @@ def connect_to_peer(destination, port):
         sockets.append(s)
 
         # Notify both peers that the connection is established
-        print(f"The connection to peer {destination} is established with connection ID {connection_id}")
+        print(f"> Connection to peer {destination} is established with connection ID: {connection_id}")
 
     except Exception as e:
         print("Connection error:", str(e))
@@ -127,9 +127,9 @@ def connect_to_peer(destination, port):
 
 # Function to list all active connections
 def list_connections():
-    print("id:  IP address:     Port No.")
+    print("ID:  IP address:     Port:")
     for connection in active_connections:
-        print(f"{connection} , {active_connections[connection].getpeername()}")
+        print(f"{connection} , {active_connections[connection].getpeername()[0]}, {active_connections[connection].getpeername()[1]}")
 
 # Function to terminate a connection
 def terminate_connection(connection_id):
@@ -138,8 +138,13 @@ def terminate_connection(connection_id):
 
 # Function to send a message to a connection
 def send_message(connection_id, message):
-    # Implement this function to send the message to the specified connection
-    pass
+    if connection_id in active_connections:
+        print("> sending...")
+        try:
+            active_connections[connection_id].send(message.encode('utf-8'))
+            print("> message sent.")
+        except:        
+            print(f"> Error sending message to {active_connections[connection_id].getpeername()[0]}")
 
 # Function to close all connections
 def close_all_connections():
@@ -152,17 +157,28 @@ def handle_incoming_connections(listener):
     while not exitFlag:  # Check the exitFlag
         global connection_id
         try:
-            read_sockets, _, _ = select.select([listener], [], [], 1)
+            read_sockets, _, _ = select.select(sockets, [], [], 1)
             for sock in read_sockets:
                 if sock == listener:
                     # New connection, accept it
                     new_socket, _ = listener.accept()
                     sockets.append(new_socket)
+
+                    # Keep track of it
                     connection_id += 1
                     active_connections[connection_id] = new_socket
 
                     # Notify that a new connection is established
-                    print(f"Connection to peer {new_socket.getpeername()[0]} is successfully established")
+                    print(f" connection to peer {new_socket.getpeername()[0]} is established with ID: {connection_id}")
+
+                else:
+                    data = sock.recv(1024)
+                    if data:
+                        print("has data")
+                        print(f"> from user: {data.decode('utf-8')}")
+                    else:
+                        sock.close()
+                        sockets.remove(sock)
 
         except Exception as e:
             print("Error accepting connections:"), str(e)
