@@ -1,13 +1,25 @@
 import socket
 import sys
 import select
+import threading
+
+exitFlag = False  # Global flag to signal threads to exit
+
+connection_id = 0
+
+# Create a dictionary to store information about active connections
+active_connections = {}
+
+# Create a list of sockets to be monitored by select
+sockets = []
 
 # Function to display the user interface and handle user commands
 def user_interface():
+    global exitFlag
     print("Welcome to the Chat Application!")
     print("Type 'help' for available commands.")
 
-    while True:
+    while not exitFlag:  # Check the exitFlag
         command = input("> ")
         if command == 'help':
             # Display command help information
@@ -57,6 +69,7 @@ def user_interface():
                 message = parts[2]
                 send_message(connection_id, message)
         elif command == 'exit':
+            exitFlag = True
             # Close all connections and exit
             close_all_connections()
             break
@@ -87,13 +100,37 @@ def create_listener(port):
 
 # Function to establish a connection to another peer
 def connect_to_peer(destination, port):
-    # Implement this function to create a socket and connect to the specified destination
-    pass
+    global connection_id
+    try:
+        # Create a socket for the client
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(10)  # Set a timeout of 10 seconds for the connection attempt
+
+        # Connect to the destination (another peer) using the specified IP and port
+        s.connect((destination, port))
+
+        # Increment the connection ID counter and assign a unique ID to this connection
+        connection_id += 1
+
+        # Store connection information in the active_connections dictionary
+        active_connections[connection_id] = s
+
+        # Add the new socket to the list of sockets to be monitored
+        sockets.append(s)
+
+        # Notify both peers that the connection is established
+        s.send("Connection established.".encode('utf-8'))
+        print(f"Connected to {destination}:{port} with connection ID {connection_id}")
+
+    except Exception as e:
+        print("Connection error:", str(e))
+    
 
 # Function to list all active connections
 def list_connections():
-    # Implement this function to display a numbered list of active connections
-    pass
+    print("id:  IP address:     Port No.")
+    for connection in active_connections:
+        print(f"{connection} , {active_connections[connection].getpeername()}")
 
 # Function to terminate a connection
 def terminate_connection(connection_id):
@@ -110,6 +147,28 @@ def close_all_connections():
     # Implement this function to close all active connections
     pass
 
+
+# Function to handle incoming connections
+def handle_incoming_connections(listener):
+    while not exitFlag:  # Check the exitFlag
+        global connection_id
+        try:
+            read_sockets, _, _ = select.select([listener], [], [], 1)
+            for sock in read_sockets:
+                if sock == listener:
+                    # New connection, accept it
+                    new_socket, _ = listener.accept()
+                    sockets.append(new_socket)
+                    connection_id += 1
+                    active_connections[connection_id] = new_socket
+
+                    # Notify that a new connection is established
+                    print("New connection:", new_socket.getpeername())
+
+        except Exception as e:
+            print("Error accepting connections:"), str(e)
+
+
 # Entry point of the program
 if __name__ == "__main__":
     if len(sys.argv) != 2:
@@ -118,5 +177,16 @@ if __name__ == "__main__":
 
     listening_port = int(sys.argv[1])
 
-    # Start the user interface and handle user commands
-    user_interface()
+    listener = create_listener(listening_port)
+    sockets.append(listener)
+
+    # Start the user interface in a separate thread
+    user_interface_thread = threading.Thread(target=user_interface)
+    user_interface_thread.start()
+
+    # Start the handle_incoming_connections function in another thread
+    incoming_connections_thread = threading.Thread(target=handle_incoming_connections, args=(listener,))
+    incoming_connections_thread.start()
+
+    user_interface_thread.join()
+    incoming_connections_thread.join()
