@@ -119,8 +119,7 @@ def connect_to_peer(destination, port):
         sockets.append(s)
 
         # Notify both peers that the connection is established
-        s.send("Connection established.".encode('utf-8'))
-        print(f"Connected to {destination}:{port} with connection ID {connection_id}")
+        print(f"The connection to peer {destination} is established with connection ID {connection_id}")
 
     except Exception as e:
         print("Connection error:", str(e))
@@ -163,7 +162,7 @@ def handle_incoming_connections(listener):
                     active_connections[connection_id] = new_socket
 
                     # Notify that a new connection is established
-                    print("New connection:", new_socket.getpeername())
+                    print(f"Connection to peer {new_socket.getpeername()[0]} is successfully established")
 
         except Exception as e:
             print("Error accepting connections:"), str(e)
