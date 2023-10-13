@@ -90,14 +90,31 @@ def create_listener(port):
     listener.listen(5)
     return listener
 
+# Function to receive messages
+def receive_messages(connection_id, client_socket):
+    try:
+        while True:
+            message = client_socket.recv(1024).decode()
+            if not message:
+                break
+            print(f"Message received from connection {connection_id}: {message}")
+    except Exception as e:
+        print(f"Error receiving message: {str(e)}")
+    finally:
+        client_socket.close()
+
 # Function to handle incoming connections
 def handle_incoming_connections(server_socket):
     global connections, next_connection_id
     
     while True:
         client_socket, client_address = server_socket.accept()
+        print('The ip is',get_ip())
         connections[next_connection_id] = {'socket': client_socket, 'address': client_address}
         print(f"New connection from {client_address} with ID {next_connection_id}")
+         # Start a new thread to receive messages from this connection
+        threading.Thread(target=receive_messages, args=(next_connection_id, client_socket)).start()
+        
         next_connection_id += 1
 
 # Function to establish a connection to another peer
@@ -134,6 +151,20 @@ def terminate_connection(connection_id):
 # Function to send a message to a connection
 def send_message(connection_id, message):
     # Implement this function to send the message to the specified connection
+    global connections
+    
+    if connection_id not in connections:
+        print(f"No connection found with ID {connection_id}")
+        return
+
+    connection_info = connections[connection_id]
+    client_socket = connection_info['socket']
+    try:
+        client_socket.sendall(message.encode())
+        print(f"Message sent to {connection_id}")
+    except Exception as e:
+        print(f"Failed to send message: {str(e)}")
+
     pass
 
 # Function to close all connections
