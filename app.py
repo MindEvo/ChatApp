@@ -145,7 +145,25 @@ def list_connections():
 
 # Function to terminate a connection
 def terminate_connection(connection_id):
-    # Implement this function to close the specified connection
+    # Implement this function to close the specified connection'
+    global connections
+    
+    if connection_id not in connections:
+        print(f"No connection found with ID {connection_id}")
+        return
+
+    connection_info = connections[connection_id]
+    client_socket = connection_info['socket']
+
+    try:
+        client_socket.shutdown(socket.SHUT_RDWR)
+        client_socket.close()
+        print(f"Connection {connection_id} terminated")
+    except Exception as e:
+        print(f"Error terminating connection {connection_id}: {str(e)}")
+    
+    # Remove the connection from the connections dictionary
+    del connections[connection_id]
     pass
 
 # Function to send a message to a connection
@@ -170,6 +188,26 @@ def send_message(connection_id, message):
 # Function to close all connections
 def close_all_connections():
     # Implement this function to close all active connections
+    global connections
+    
+    # If there are no active connections
+    if not connections:
+        print("No active connections to close.")
+        return
+    
+    for connection_id, connection_info in list(connections.items()):
+        client_socket = connection_info['socket']
+        
+        try:
+            client_socket.shutdown(socket.SHUT_RDWR)
+            client_socket.close()
+            print(f"Connection {connection_id} closed.")
+        except Exception as e:
+            print(f"Error closing connection {connection_id}: {str(e)}")
+    
+    # Clear the connections dictionary
+    connections.clear()
+    print("All connections closed.")
     pass
 
 # Entry point of the program
