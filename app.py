@@ -7,16 +7,20 @@ import select
 import threading
 import struct
 
+
+##################
+##  GLOBALS     ##
+##################
 exitFlag = threading.Event()
 connection_id = 0
 active_connections = {}
 sockets = []
 lock = threading.Lock()
 
-##########################
-##      METHODS         ##
-##########################
 
+#########################################
+##      USER INTERFACE METHODS         ##
+#########################################
 def user_interface():
     print("Welcome to the Chat Application!")
     print("Type 'help' for available commands.")
@@ -86,6 +90,10 @@ def handle_exit_command():
     exitFlag.set()
     close_all_connections()
 
+
+########################################
+##      CORE FUNCTIONALITY METHODS    ##
+########################################
 def get_ip():
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -189,6 +197,10 @@ def handle_incoming_messages(listener):
         except Exception as e:
             print("Error accepting incoming message:", str(e))
 
+
+#######################################
+##      MAIN PROGRAM ENTRY POINT     ##
+#######################################
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Usage: ./chat <port>")
@@ -198,15 +210,23 @@ if __name__ == "__main__":
     listener = create_listener(listening_port)
     sockets.append(listener)
 
+    ######################
+    ##      THREADS     ##
+    ######################
+
+    # 1 #
     user_interface_thread = threading.Thread(target=user_interface)
     user_interface_thread.start()
-
+    # 2 #
     incoming_connections_thread = threading.Thread(target=handle_incoming_connections, args=(listener,))
     incoming_connections_thread.start()
-
+    # 3 #
     incoming_messages_thread = threading.Thread(target=handle_incoming_messages, args=(listener,))
     incoming_messages_thread.start()
 
+    # CLOSE THREADS #
     user_interface_thread.join()
     incoming_connections_thread.join()
     incoming_messages_thread.join()
+
+
