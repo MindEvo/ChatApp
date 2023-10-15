@@ -130,8 +130,10 @@ def connect_to_peer(destination: str, port: str) -> None:
 def list_connections() -> None:
     with lock:
         print("> ID: \tIP address: \tPort:")
+        print(f"> ---   ------------    -----")
         for connection in active_connections:
             print(f"> {connection} \t{active_connections[connection].getpeername()[0]} \t{active_connections[connection].getpeername()[1]}")
+            print(f"> ---   ------------    -----")
 
 def terminate_connection(connection_id: int) -> None:
     with lock:
@@ -160,8 +162,8 @@ def send_message(connection_id: int, message: str) -> None:
 
 def close_all_connections() -> None:
     with lock:
-        for _, conn in active_connections.items():
-            conn.close()
+        for _, connection in active_connections.items():
+            connection.close()
         active_connections.clear()
         sockets.clear()
 
@@ -192,8 +194,8 @@ def handle_incoming_messages(listener: socket) -> None:
                         print(f"From {sock.getpeername()[0]}: {data}")
                     else:
                         with lock:
-                            for id, conn in active_connections.items():
-                                if conn == sock:
+                            for id, connection in active_connections.items():
+                                if connection == sock:
                                     del active_connections[id]
                                     break
                             if sock in sockets:
