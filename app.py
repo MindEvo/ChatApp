@@ -21,7 +21,7 @@ lock = threading.Lock()
 #########################################
 ##      USER INTERFACE METHODS         ##
 #########################################
-def user_interface():
+def user_interface() -> None:
     print("Welcome to the Chat Application!")
     print("Type 'help' for available commands.")
 
@@ -29,7 +29,7 @@ def user_interface():
         command = input("> ")
         handle_user_command(command)
 
-def handle_user_command(command):
+def handle_user_command(command: str) -> None:
     if command == 'help':
         display_help()
     elif command == 'myip':
@@ -49,7 +49,7 @@ def handle_user_command(command):
     else:
         print("Invalid command. Type 'help' for available commands.")
 
-def display_help():
+def display_help() -> None:
     print("Available commands:")
     print("help - Display help information")
     print("myip - Display your IP address")
@@ -60,7 +60,7 @@ def display_help():
     print("send <connection_id> <message> - Send a message to a connection")
     print("exit - Close all connections and exit the application")
 
-def handle_connect_command(command):
+def handle_connect_command(command: str) -> None:
     parts = command.split()
     if len(parts) != 3:
         print("Invalid command. Usage: connect <destination> <port>")
@@ -69,7 +69,7 @@ def handle_connect_command(command):
         port = int(parts[2])
         connect_to_peer(destination, port)
 
-def handle_terminate_command(command):
+def handle_terminate_command(command: str) -> None:
     parts = command.split()
     if len(parts) != 2:
         print("Invalid command. Usage: terminate <connection_id>")
@@ -77,7 +77,7 @@ def handle_terminate_command(command):
         connection_id = int(parts[1])
         terminate_connection(connection_id)
 
-def handle_send_command(command):
+def handle_send_command(command: str) -> None:
     parts = command.split(' ', 2)
     if len(parts) != 3:
         print("Invalid command. Usage: send <connection_id> <message>")
@@ -86,7 +86,7 @@ def handle_send_command(command):
         message = parts[2]
         send_message(connection_id, message)
 
-def handle_exit_command():
+def handle_exit_command() -> None:
     exitFlag.set()
     close_all_connections()
 
@@ -94,7 +94,7 @@ def handle_exit_command():
 ########################################
 ##      CORE FUNCTIONALITY METHODS    ##
 ########################################
-def get_ip():
+def get_ip() -> str:
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.settimeout(0.1)
@@ -106,13 +106,14 @@ def get_ip():
         print("Error getting IP address:", str(e))
         return "Unknown"
 
-def create_listener(port):
+def create_listener(port) -> socket:
     listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     listener.bind(('0.0.0.0', port))
     listener.listen(5)
+    print(type(listener))
     return listener
 
-def connect_to_peer(destination, port):
+def connect_to_peer(destination: str, port: str) -> None:
     global connection_id
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -126,13 +127,13 @@ def connect_to_peer(destination, port):
     except Exception as e:
         print("Connection error:", str(e))
 
-def list_connections():
+def list_connections() -> None:
     with lock:
         print("> ID: \tIP address: \tPort:")
         for connection in active_connections:
             print(f"> {connection} \t{active_connections[connection].getpeername()[0]} \t{active_connections[connection].getpeername()[1]}")
 
-def terminate_connection(connection_id):
+def terminate_connection(connection_id: int) -> None:
     with lock:
         if connection_id in active_connections:
             try:
@@ -143,8 +144,10 @@ def terminate_connection(connection_id):
                 del active_connections[connection_id]
             except Exception as e:
                 print("Error closing connection:", str(e))
+        else:
+            print(f"No active connection with id: {connection_id}")
                 
-def send_message(connection_id, message):
+def send_message(connection_id: int, message: str) -> None:
     with lock:
         if connection_id in active_connections:
             try:
@@ -152,15 +155,17 @@ def send_message(connection_id, message):
                 print("> Message sent")
             except:
                 print(f"> Error sending message to: {active_connections[connection_id].getpeername()[0]}")
+        else:
+            print(f"No active connection with id: {connection_id}")
 
-def close_all_connections():
+def close_all_connections() -> None:
     with lock:
         for _, conn in active_connections.items():
             conn.close()
         active_connections.clear()
         sockets.clear()
 
-def handle_incoming_connections(listener):
+def handle_incoming_connections(listener: socket) -> None:
     while not exitFlag.is_set():
         global connection_id
         try:
@@ -176,7 +181,7 @@ def handle_incoming_connections(listener):
         except Exception as e:
             print("Error accepting connection:", str(e))
 
-def handle_incoming_messages(listener):
+def handle_incoming_messages(listener: socket) -> None:
     while not exitFlag.is_set():
         try:
             read_sockets, _, _ = select.select(sockets, [], [], 1)
