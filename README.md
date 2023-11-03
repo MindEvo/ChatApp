@@ -48,3 +48,9 @@ Despite these issues, connections still get terminated and are verified when cal
 When exiting the program while having active connections the following bug is displayed:
 	- Error accepting incoming message: [WinError 10038] An operation was attempted on something that is not a socket
 Despite this bug the program will still exit and return the user to the command line.
+
+5. ## Contributions
+	Angel Villalobos 	- Code, Algorithm
+	Thomas Benson		- Code, Algorithm
+
+	We both worked on the entire program collaborating as a team as well as working through each component individually. 

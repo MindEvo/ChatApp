@@ -5,7 +5,6 @@ import socket
 import sys
 import select
 import threading
-import struct
 
 
 ##################
@@ -106,18 +105,17 @@ def get_ip() -> str:
         print("Error getting IP address:", str(e))
         return "Unknown"
 
-def create_listener(port) -> socket:
+def create_listener(port: int) -> socket:
     listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     listener.bind(('0.0.0.0', port))
     listener.listen(5)
-    print(type(listener))
     return listener
 
 def connect_to_peer(destination: str, port: str) -> None:
     global connection_id
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(10)
+        s.settimeout(30)
         s.connect((destination, port))
         with lock:
             connection_id += 1
